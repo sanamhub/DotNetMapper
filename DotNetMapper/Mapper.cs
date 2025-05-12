@@ -54,7 +54,7 @@ public static class Mapper
         {
             var outputProperty = outputProperties.FirstOrDefault(p => p.Name == inputProperty.Name && p.PropertyType == inputProperty.PropertyType);
 
-            if (outputProperty != null && outputProperty.CanWrite)
+            if (outputProperty is not null && outputProperty.CanWrite)
             {
                 var inputPropertyValue = Expression.Property(inputVariable, inputProperty);
 
@@ -68,7 +68,7 @@ public static class Mapper
         expressions.Add(outputVariable);
 
         var lambda = Expression.Lambda<Func<object, object>>(
-            Expression.Block(new[] { inputVariable, outputVariable }, new Expression[] { inputAssign }.Concat(expressions)),
+            Expression.Block([inputVariable, outputVariable], new Expression[] { inputAssign }.Concat(expressions)),
             inputParameter
         );
 
