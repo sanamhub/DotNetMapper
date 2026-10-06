@@ -1,0 +1,11 @@
+# Normalise to LF in the repository; .editorconfig sets end_of_line = lf.
+* text=auto eol=lf
+
+*.sh     text eol=lf
+*.ps1    text eol=crlf
+
+*.dll    binary
+*.pdb    binary
+*.png    binary
+*.nupkg  binary
+*.snupkg binary
