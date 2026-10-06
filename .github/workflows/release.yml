@@ -12,10 +12,17 @@ on:
 permissions:
   contents: read
 
+# Two pushes of the same tag must never publish side by side.
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   DOTNET_NOLOGO: 'true'
   DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
   DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  # Sets ContinuousIntegrationBuild, so the released PDB has deterministic source paths.
+  CI: 'true'
 
 jobs:
   preflight:
@@ -98,7 +105,8 @@ jobs:
 
   publish:
     name: publish
-    needs: verify
+    # preflight is listed too: a job can only read the outputs of jobs it names in needs.
+    needs: [preflight, verify]
     if: github.event_name == 'push'
     runs-on: ubuntu-24.04
     environment: production
