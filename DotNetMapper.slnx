@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/DotNetMapper/DotNetMapper.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DotNetMapper.Tests/DotNetMapper.Tests.csproj" />
+  </Folder>
 </Solution>
