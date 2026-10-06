@@ -17,6 +17,9 @@
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="Riok.Mapperly" />
     <PackageReference Include="Mapster" />
+    <PackageReference Include="AutoMapper" />
+    <PackageReference Include="TinyMapper" />
+    <PackageReference Include="AgileObjects.AgileMapper" />
   </ItemGroup>
 
 </Project>

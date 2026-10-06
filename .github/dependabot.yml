@@ -13,7 +13,7 @@ updates:
       test:
         patterns: ["xunit.*", "Microsoft.Testing.*"]
       benchmarks:
-        patterns: ["BenchmarkDotNet*", "Riok.Mapperly", "Mapster"]
+        patterns: ["BenchmarkDotNet*", "Riok.Mapperly", "Mapster", "AutoMapper", "TinyMapper", "AgileObjects.AgileMapper"]
     ignore:
       # The generator must compile against the oldest supported SDK 10 compiler. ADR-0002.
       - dependency-name: "Microsoft.CodeAnalysis.CSharp"

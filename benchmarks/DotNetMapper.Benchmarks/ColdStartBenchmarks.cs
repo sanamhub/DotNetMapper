@@ -1,12 +1,16 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
+using AgileObjects.AgileMapper;
+using AutoMapper;
 using Mapster;
+using Microsoft.Extensions.Logging.Abstractions;
+using Nelibur.ObjectMapper;
 
 namespace DotNetMapper.Benchmarks;
 
-// One call per launch, ten launches. Measures the first-call cost: the interceptor is already
-// inlined by the compiler, the runtime path pays one expression compile, and Mapster pays its
-// config compilation on the first Adapt call.
+// One call per launch, ten launches. Measures the first-call cost, including whatever setup each
+// library needs before it can map: the generated code needs none, the runtime path compiles one
+// expression, and the reflection-based libraries build and compile their plans.
 [SimpleJob(RunStrategy.ColdStart, launchCount: 10, warmupCount: 0, iterationCount: 1)]
 [MemoryDiagnoser]
 public class ColdStartBenchmarks
@@ -14,25 +18,10 @@ public class ColdStartBenchmarks
     private Source _source = new();
 
     [GlobalSetup]
-    public void GlobalSetup()
-    {
-        _source = new Source
-        {
-            Id = 1,
-            Count = 2,
-            FirstName = "first",
-            LastName = "last",
-            When = new DateTime(2026, 1, 2, 3, 4, 5),
-            Amount = 12.5m,
-            Key = Guid.NewGuid(),
-            Flag = true,
-            Color = Color.Green,
-            Tags = ["a", "b"],
-        };
-    }
+    public void GlobalSetup() => _source = Competitors.NewSource();
 
     [Benchmark]
-    public Destination DotNetMapper() => Mapper.Map<Source, Destination>(_source);
+    public Destination DotNetMapper() => global::DotNetMapper.Mapper.Map<Source, Destination>(_source);
 
     [Benchmark]
     public Destination DotNetMapper_Runtime() => RuntimePath.Map<Source, Destination>(_source);
@@ -45,4 +34,19 @@ public class ColdStartBenchmarks
 
     [Benchmark]
     public Destination Mapster() => _source.Adapt<Destination>();
+
+    [Benchmark]
+    public Destination AutoMapper() => new MapperConfiguration(
+        cfg => cfg.CreateMap<Source, Destination>(),
+        NullLoggerFactory.Instance).CreateMapper().Map<Destination>(_source);
+
+    [Benchmark]
+    public Destination TinyMapper()
+    {
+        Nelibur.ObjectMapper.TinyMapper.Bind<Source, Destination>();
+        return Nelibur.ObjectMapper.TinyMapper.Map<Destination>(_source);
+    }
+
+    [Benchmark]
+    public Destination AgileMapper() => AgileObjects.AgileMapper.Mapper.Map(_source).ToANew<Destination>();
 }
