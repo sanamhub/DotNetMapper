@@ -3,6 +3,9 @@ using System.Linq.Expressions;
 
 namespace DotNetMapper;
 
+/// <summary>
+/// Maps objects of one type to a new object of another type.
+/// </summary>
 public static class Mapper
 {
     private static readonly ConcurrentDictionary<(Type, Type), Func<object, object>> _mapFunctionCache = new();
