@@ -70,7 +70,7 @@ public sealed class MappingTests
         AssertMismatch(RuntimePath.Map<TypeMismatchSource, TypeMismatchTarget>(input));
     }
 
-    [Fact(Skip = "1.x reads a non-public getter and throws (B3). Fixed by commit 4.")]
+    [Fact]
     public void Source_private_getter_is_not_read()
     {
         var input = new PrivateGetterSource();
@@ -86,7 +86,7 @@ public sealed class MappingTests
         AssertGetter(RuntimePath.Map<PrivateGetterSource, PlainTarget>(input));
     }
 
-    [Fact(Skip = "1.x reads a write-only source property and throws (B3). Fixed by commit 4.")]
+    [Fact]
     public void Source_write_only_property_is_not_read()
     {
         var input = new WriteOnlySource { Value = 5 };
@@ -101,7 +101,7 @@ public sealed class MappingTests
         AssertWriteOnly(RuntimePath.Map<WriteOnlySource, PlainTarget>(input));
     }
 
-    [Fact(Skip = "1.x writes a private setter (B4). Fixed by commit 4.")]
+    [Fact]
     public void Target_private_setter_is_not_written()
     {
         var input = new PlainTarget { Value = 5 };
@@ -109,7 +109,7 @@ public sealed class MappingTests
         Assert.Equal(0, mapped.Value);
     }
 
-    [Fact(Skip = "1.x writes an internal setter (B4). Fixed by commit 4.")]
+    [Fact]
     public void Target_internal_setter_is_not_written()
     {
         var input = new PlainTarget { Value = 5 };
@@ -163,7 +163,7 @@ public sealed class MappingTests
         AssertRecord(RuntimePath.Map<BasicSource, RecordTarget>(input));
     }
 
-    [Fact(Skip = "1.x returns a boxed object and cannot map to a struct result (B5). Fixed by commit 4.")]
+    [Fact]
     public void Struct_to_struct_maps()
     {
         var input = new StructSource { Id = 3, Name = "s" };
@@ -179,7 +179,7 @@ public sealed class MappingTests
         AssertStruct(RuntimePath.Map<StructSource, StructTarget>(input));
     }
 
-    [Fact(Skip = "1.x returns a boxed object and cannot map to a struct result (B5). Fixed by commit 4.")]
+    [Fact]
     public void Class_to_struct_maps()
     {
         var input = new SmallClassSource { Value = 4 };
@@ -227,7 +227,7 @@ public sealed class MappingTests
         AssertHidden(RuntimePath.Map<HiddenDerivedSource, HiddenTarget>(input));
     }
 
-    [Fact(Skip = "1.x throws on an indexer (B2). Fixed by commit 4.")]
+    [Fact]
     public void Indexers_are_ignored()
     {
         var input = new IndexerSource();
@@ -243,7 +243,7 @@ public sealed class MappingTests
         AssertIndexer(RuntimePath.Map<IndexerSource, IndexerTarget>(input));
     }
 
-    [Fact(Skip = "1.x tries to read a static property and throws. Fixed by commit 4.")]
+    [Fact]
     public void Static_properties_are_ignored()
     {
         StaticSource.StaticProp = 42;
@@ -261,7 +261,7 @@ public sealed class MappingTests
         AssertBothThrows<BasicSource, BasicTarget>();
     }
 
-    [Fact(Skip = "1.x returns a boxed object and cannot map to a struct result (B5). Fixed by commit 4.")]
+    [Fact]
     public void Struct_input_is_never_null_checked()
     {
         var mapped = Mapper.Map<StructSource, StructTarget>(default);

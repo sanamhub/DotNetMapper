@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
     <!-- Lets a reviewer read what the generator produced under obj/. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <TestingPlatformCommandLineArguments>--minimum-expected-tests 28</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>

@@ -1,0 +1,3 @@
+#nullable enable
+DotNetMapper.Mapper
+static DotNetMapper.Mapper.Map<TInput, TOutput>(TInput inputObject) -> TOutput
