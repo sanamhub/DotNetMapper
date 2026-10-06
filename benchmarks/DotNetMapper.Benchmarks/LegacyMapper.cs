@@ -1,20 +1,14 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Linq.Expressions;
 
-namespace DotNetMapper;
+namespace DotNetMapper.Benchmarks;
 
-public static class Mapper
+// The exact 1.0.2 implementation, renamed. It compiles the expression tree on every call
+// because the value overload of GetOrAdd runs the factory unconditionally.
+internal static class LegacyMapper
 {
     private static readonly ConcurrentDictionary<(Type, Type), Func<object, object>> _mapFunctionCache = new();
 
-    /// <summary>
-    /// Maps an input object of type TInput to an output object of type TOutput
-    /// </summary>
-    /// <typeparam name="TInput">The input object type</typeparam>
-    /// <typeparam name="TOutput">The output object type</typeparam>
-    /// <param name="inputObject">The input object to be mapped</param>
-    /// <returns>The output object of type TOutput</returns>
-    /// <exception cref="ArgumentNullException">Thrown when inputObject is null</exception>
     public static TOutput Map<TInput, TOutput>(TInput inputObject) where TOutput : new()
     {
         if (inputObject is null) throw new ArgumentNullException(nameof(inputObject));
@@ -26,12 +20,6 @@ public static class Mapper
 
     #region Privates
 
-    /// <summary>
-    /// Creates a compiled function that maps objects of type TInput to objects of type TOutput.
-    /// </summary>
-    /// <typeparam name="TInput">The input type.</typeparam>
-    /// <typeparam name="TOutput">The output type.</typeparam>
-    /// <returns>A compiled function that maps objects of type TInput to objects of type TOutput.</returns>
     private static Func<object, object> CreateMapFunction<TInput, TOutput>()
     {
         var inputParameter = Expression.Parameter(typeof(object), "input");

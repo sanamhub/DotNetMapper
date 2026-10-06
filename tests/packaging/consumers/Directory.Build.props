@@ -1,0 +1,1 @@
+<Project><!-- Stops the lookup here: consumers inherit nothing from the repository root. --></Project>

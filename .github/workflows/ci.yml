@@ -1,0 +1,150 @@
+name: ci
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# Least privilege by default; jobs opt into more.
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 'true'
+  CI: 'true'
+
+jobs:
+  build-test:
+    name: build+test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2022]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: restore
+        run: dotnet restore
+
+      # TreatWarningsAsErrors + AnalysisLevel=latest-all makes this the lint gate too.
+      - name: build
+        run: dotnet build -c Release --no-restore
+
+      - name: test
+        if: runner.os == 'Windows'
+        run: >
+          dotnet test -c Release --no-build
+          --report-trx --results-directory TestResults
+
+      - name: test (with coverage)
+        if: runner.os == 'Linux'
+        run: >
+          dotnet test -c Release --no-build
+          --report-trx --results-directory TestResults
+          --coverage --coverage-output-format cobertura
+
+      # Shown, not enforced: 80 percent is a target (org rule 7), and a gate on a number invites
+      # tests written for the number.
+      - name: coverage summary
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          python3 - <<'EOF' >> "$GITHUB_STEP_SUMMARY"
+          import glob, xml.etree.ElementTree as ET
+          print("| Test run | Assembly | Line coverage |\n| --- | --- | --- |")
+          for path in sorted(glob.glob("TestResults/*.cobertura.xml")):
+              for pkg in ET.parse(path).getroot().iter("package"):
+                  print(f"| {path.split('/')[-1][:8]} | {pkg.get('name')} | {float(pkg.get('line-rate')):.1%} |")
+          EOF
+
+      - name: upload test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: test-results-${{ matrix.os }}
+          path: TestResults
+          retention-days: 7
+
+  packaging:
+    # Installs the packed package into a project outside the repository and publishes it under
+    # NativeAOT with warnings-as-errors. This is where a package that builds and tests cleanly
+    # but fails at a consumer's first call, or never intercepts, shows up.
+    name: packaging
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - name: pack and consume
+        run: |
+          sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+          ./tests/packaging/verify-package.sh
+
+  no-if:
+    # Single TFM means zero conditional compilation is ever needed. obj and bin are excluded so
+    # that a package's generated code can never fail this gate.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: assert no conditional compilation
+        shell: bash
+        run: |
+          if grep -rn --include='*.cs' --exclude-dir=obj --exclude-dir=bin -E '^\s*#(if|else|elif|endif)\b' src tests; then
+            echo "::error::#if found. A single TFM needs no conditional compilation."
+            exit 1
+          fi
+
+  analyze:
+    name: codeql
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          languages: csharp
+      - run: dotnet build -c Release
+      - uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+
+  deps:
+    name: dependency review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Blocks a merge on a critical or high advisory without a recorded risk decision.
+      # Needs the repository Dependency graph enabled; without it the action errors with
+      # "Dependency review is not supported on this repository".
+      - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+        with:
+          fail-on-severity: high
+          comment-summary-in-pr: on-failure

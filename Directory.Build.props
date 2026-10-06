@@ -1,0 +1,41 @@
+<Project>
+
+  <!-- Shared settings for every project. The generator overrides TargetFramework (Roslyn loads
+       only netstandard2.0 analyzers). ADR-0001. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Org rule 4: lint errors block merge. Enforced by the compiler, not by review. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-all</AnalysisLevel>
+
+    <!-- Deterministic, source-linked builds. SourceLink for GitHub is built into the .NET SDK. -->
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+
+    <!-- Audit transitive packages too. High and critical fail restore; moderate and low stay
+         warnings (org rule 6). NuGet.Config pins the audit source. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <WarningsNotAsErrors>NU1901;NU1902</WarningsNotAsErrors>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Repository">
+    <Product>DotNetMapper</Product>
+    <Authors>sanam</Authors>
+    <Company>DotNetMapper contributors</Company>
+    <Copyright>Copyright (c) DotNetMapper contributors</Copyright>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/sanamhub/DotNetMapper</RepositoryUrl>
+  </PropertyGroup>
+
+</Project>

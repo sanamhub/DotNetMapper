@@ -1,0 +1,46 @@
+name: Bug report
+description: Something in DotNetMapper does not work as documented.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Security problems go through [a private advisory](https://github.com/sanamhub/DotNetMapper/security/advisories/new), not here.
+  - type: textarea
+    id: repro
+    attributes:
+      label: Code that reproduces it
+      description: The smallest snippet that shows the problem.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+      description: What you expected, what happened, and the full exception if there was one.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: DotNetMapper version
+      placeholder: 2.0.0
+    validations:
+      required: true
+  - type: input
+    id: dotnet
+    attributes:
+      label: .NET version and OS
+      description: Output of `dotnet --version`, plus the OS and architecture.
+    validations:
+      required: true
+  - type: dropdown
+    id: intercepted
+    attributes:
+      label: Was the call intercepted?
+      description: Look for `DotNetMapper.Interceptors.g.cs` with `EmitCompilerGeneratedFiles=true`.
+      options:
+        - 'yes'
+        - 'no'
+        - "don't know"

@@ -1,0 +1,73 @@
+name: bench
+
+# Runs the benchmark harness on demand. Deliberately not a gate: shared runners are far too noisy
+# for nanosecond thresholds, and a flaky performance gate gets disabled within a month, taking
+# real coverage with it. Allocation is what gets gated, and that happens in the test suite where
+# it is deterministic.
+
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: 'BenchmarkDotNet filter, for example *W1* or *Throughput*'
+        type: string
+        default: '*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bench-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  DOTNET_NOLOGO: 'true'
+  DOTNET_CLI_TELEMETRY_OPTOUT: 'true'
+
+jobs:
+  run:
+    name: bench
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: run benchmarks
+        env:
+          FILTER: ${{ inputs.filter }}
+        run: >
+          dotnet run -c Release --project benchmarks/DotNetMapper.Benchmarks --
+          --filter "$FILTER"
+          --exporters json markdown
+          --memory
+
+      # BenchmarkDotNet exits 0 when its own validation rejects the run, so a broken harness
+      # otherwise produces a green job that measured nothing.
+      - name: fail if nothing was measured
+        shell: bash
+        run: |
+          shopt -s nullglob
+          results=(BenchmarkDotNet.Artifacts/results/*.md)
+          if [ ${#results[@]} -eq 0 ]; then
+            echo "::error::BenchmarkDotNet produced no results. Check the validation output above."
+            exit 1
+          fi
+          echo "produced ${#results[@]} result file(s)"
+
+      - name: show the results in the summary
+        shell: bash
+        run: |
+          for f in BenchmarkDotNet.Artifacts/results/*.md; do
+            cat "$f" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: benchmark-results
+          path: BenchmarkDotNet.Artifacts/results
+          retention-days: 30

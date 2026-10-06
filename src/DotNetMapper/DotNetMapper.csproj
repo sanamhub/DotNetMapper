@@ -1,0 +1,48 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>DotNetMapper</RootNamespace>
+    <AssemblyName>DotNetMapper</AssemblyName>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IsAotCompatible>true</IsAotCompatible>
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
+  <PropertyGroup Label="Package">
+    <IsPackable>true</IsPackable>
+    <PackageId>DotNetMapper</PackageId>
+    <Version>2.0.0-beta.1</Version>
+    <Description>Tiny, zero-config object mapper for .NET. Mapper.Map&lt;TIn, TOut&gt;(x) copies same-name, same-type properties. A bundled source generator turns each call into plain generated code at compile time: no reflection, NativeAOT and trim safe, hand-written speed.</Description>
+    <PackageTags>mapper;object-mapper;mapping;source-generator;interceptors;aot;nativeaot;performance</PackageTags>
+    <PackageProjectUrl>https://github.com/sanamhub/DotNetMapper</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AdditionalFiles Include="PublicAPI.Shipped.txt;PublicAPI.Unshipped.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="buildTransitive\DotNetMapper.props" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <!-- The generator ships inside this package, not as its own package. Build it first, never
+       reference its assembly, and pack its DLL where Roslyn looks for analyzers. -->
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetMapper.Generator\DotNetMapper.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <None Include="..\DotNetMapper.Generator\bin\$(Configuration)\netstandard2.0\DotNetMapper.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="DotNetMapper.Tests" />
+  </ItemGroup>
+
+</Project>
