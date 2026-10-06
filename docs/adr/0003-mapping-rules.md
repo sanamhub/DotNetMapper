@@ -24,7 +24,11 @@ The rules are:
 - A pair matches on equal name (ordinal, case-sensitive) and identical type. Nullable reference
   annotations are ignored.
 - Unmatched properties are ignored. Values are assigned, not cloned.
-- When a name is hidden with `new`, the most-derived declaration wins.
+- When a name appears more than once (hidden with `new`, or overridden), the most-derived
+  declaration wins, and only then are its accessors checked. A hiding property with a private
+  setter therefore blocks the public base setter, and an override that declares only `get` is
+  read-only. Checking accessors first would let the generator emit an assignment that C# binds to
+  the derived property and refuses to compile.
 - Interfaces consider only properties declared on that interface itself.
 
 ## Consequences

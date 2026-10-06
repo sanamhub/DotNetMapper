@@ -21,6 +21,14 @@ Ship a Roslyn incremental source generator inside the package. It finds
 `new B { P = x.P, ... }` as an interceptor. Everything else uses the runtime fallback: one
 `Func<A, B>` compiled once per type pair.
 
+Calls inside an expression tree are never intercepted. That covers lambdas converted to
+`Expression<T>` and query clauses over `IQueryable`, which the generator finds through the
+operation tree because a query clause has no lambda syntax. A provider such as EF Core has to see
+`Mapper.Map`, not a file-local generated method it cannot translate.
+
+Generated methods carry `MethodImplOptions.AggressiveInlining`, so an intercepted call compiles to
+the same code as a hand-written object initializer.
+
 The generator compiles against Roslyn 5.0.0, the version that ships with the oldest .NET 10 SDK
 band. A newer reference would stop the generator loading in an older band or IDE, so dependabot
 is told to ignore those two packages.

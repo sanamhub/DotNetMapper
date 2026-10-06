@@ -1,47 +1,79 @@
 # Benchmarks
 
-Run on 2026-10-06 on a Windows 11 (10.0.26200.9550) machine, 12th Gen Intel Core i5-12500H
-3.10 GHz, .NET SDK 10.0.401, runtime 10.0.12, x64.
+Run on 2026-10-06 with BenchmarkDotNet 0.15.8, Windows 11 25H2, 12th Gen Intel Core i5-12500H,
+.NET SDK 10.0.401, runtime 10.0.12, x64 RyuJIT. Ratios are against the hand-written `Manual` row
+of the same table. Absolute nanoseconds are not comparable across machines.
 
-Ratios are against the hand-written `Manual` baseline in the same table. Absolute nanoseconds
-are not comparable across machines.
+Library versions: DotNetMapper 2.0.0, Riok.Mapperly 4.3.1, Mapster 10.0.13, AutoMapper 16.2.0,
+TinyMapper 3.0.3, AgileObjects.AgileMapper 1.8.1. Every library runs with its default settings.
+The code is in [benchmarks/DotNetMapper.Benchmarks](https://github.com/sanamhub/DotNetMapper/tree/main/benchmarks/DotNetMapper.Benchmarks).
 
-## Throughput
+## Small model, like for like
 
-`Source` and `Destination` have 10 properties (int, long, two strings, DateTime, decimal, Guid,
-bool, enum, `List<string>`). `Small` and `SmallDto` have 2.
+`Small` to `SmallDto`: an `int` and a `string`. No collection, so every library does the same work.
 
-| Model | Method | Mean | Ratio | Allocated |
-| --- | --- | ---: | ---: | ---: |
-| Source → Destination | Manual | 13.755 ns | 1.00 | 136 B |
-| Source → Destination | DotNetMapper (intercepted) | 14.574 ns | 1.06 | 136 B |
-| Source → Destination | DotNetMapper_Runtime | 16.235 ns | 1.18 | 136 B |
-| Source → Destination | DotNetMapper 1.0.2 | 183,710.967 ns | 13,358 | 11,771 B |
-| Source → Destination | Mapperly | 15.146 ns | 1.10 | 136 B |
-| Source → Destination | Mapster | 35.596 ns | 2.59 | 208 B |
-| Small → SmallDto | Manual | 4.540 ns | 1.00 | 32 B |
-| Small → SmallDto | DotNetMapper (intercepted) | 4.475 ns | 0.99 | 32 B |
-| Small → SmallDto | DotNetMapper_Runtime | 7.551 ns | 1.66 | 32 B |
-| Small → SmallDto | DotNetMapper 1.0.2 | 91,724.911 ns | 20,204 | 7,295 B |
-| Small → SmallDto | Mapperly | 7.574 ns | 1.67 | 32 B |
-| Small → SmallDto | Mapster | 13.527 ns | 2.98 | 32 B |
+| Method | Mean | Error | Ratio | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| Manual | 4.201 ns | 0.134 ns | 1.00 | 32 B |
+| DotNetMapper | 4.552 ns | 0.120 ns | 1.08 | 32 B |
+| Mapperly | 4.603 ns | 0.125 ns | 1.10 | 32 B |
+| DotNetMapper, runtime path | 7.760 ns | 0.107 ns | 1.85 | 32 B |
+| TinyMapper | 11.242 ns | 0.269 ns | 2.68 | 32 B |
+| Mapster | 13.686 ns | 0.184 ns | 3.26 | 32 B |
+| AutoMapper | 35.402 ns | 0.750 ns | 8.43 | 32 B |
+| AgileMapper | 220.659 ns | 2.478 ns | 52.53 | 296 B |
+| DotNetMapper 1.0.2 | 90,846.644 ns | 806.996 ns | 21,625 | 7,215 B |
 
-The intercepted call is within noise of hand-written code and allocates exactly the result
-object. The runtime fallback allocates the same. 1.0.2 is four orders of magnitude slower on
-every call because it recompiled the expression tree on each `Map` call and boxed both sides.
+DotNetMapper and Mapperly are within each other's error: both emit the same object initializer.
+
+## Ten properties
+
+`Source` to `Destination`: `int`, `long`, two `string`, `DateTime`, `decimal`, `Guid`, `bool`, an
+enum and a `List<string>`. DotNetMapper and Mapperly copy the list reference, as a hand-written
+mapping would. Mapster, AutoMapper, TinyMapper and AgileMapper copy the list by default, which is
+extra work and shows in the Allocated column.
+
+| Method | Mean | Error | Ratio | Allocated |
+| --- | ---: | ---: | ---: | ---: |
+| Manual | 13.459 ns | 0.305 ns | 1.00 | 136 B |
+| DotNetMapper | 12.678 ns | 0.296 ns | 0.94 | 136 B |
+| Mapperly | 13.821 ns | 0.306 ns | 1.03 | 136 B |
+| DotNetMapper, runtime path | 16.365 ns | 0.363 ns | 1.22 | 136 B |
+| Mapster | 33.850 ns | 0.663 ns | 2.52 | 208 B |
+| AutoMapper | 61.459 ns | 1.279 ns | 4.57 | 224 B |
+| TinyMapper | 62.007 ns | 0.949 ns | 4.61 | 272 B |
+| AgileMapper | 242.362 ns | 4.728 ns | 18.01 | 456 B |
+| DotNetMapper 1.0.2 | 180,053.064 ns | 3,475.611 ns | 13,378 | 11,771 B |
+
+DotNetMapper below `Manual` is noise: the generated method is inlined into the call site and
+compiles to the same code. 1.0.2 recompiled its expression tree on every call.
 
 ## Cold start
 
-One call per launch, ten launches. Measures the first-call cost.
+One call per process, ten processes. Includes whatever setup a library needs before its first
+map: AutoMapper builds a `MapperConfiguration`, TinyMapper binds the pair, the others need nothing
+explicit.
 
 | Method | Mean | Allocated |
 | --- | ---: | ---: |
-| DotNetMapper (intercepted) | 617.9 us | 136 B |
-| DotNetMapper_Runtime | 11,561.7 us | 136 B |
-| DotNetMapper 1.0.2 | 12,496.2 us | 12,168 B |
-| Mapperly | 594.3 us | 136 B |
-| Mapster | 61,979.0 us | 208 B |
+| Mapperly | 0.61 ms | 136 B |
+| DotNetMapper | 0.72 ms | 136 B |
+| DotNetMapper, runtime path | 11.77 ms | 136 B |
+| DotNetMapper 1.0.2 | 13.19 ms | 12,168 B |
+| TinyMapper | 28.41 ms | 59,672 B |
+| Mapster | 63.52 ms | 208 B |
+| AutoMapper | 64.16 ms | 263,440 B |
+| AgileMapper | 123.84 ms | 456 B |
 
-The intercepted call pays no per-call compile; the figure is process startup. The runtime path
-pays one expression compile on the first call for a type pair. Mapster pays its config
-compilation on the first `Adapt`.
+The DotNetMapper and Mapperly rows are process startup: neither does work on the first call that
+it does not do on every call. The 0.1 ms between them is inside the run-to-run spread of about
+0.07 ms.
+
+## Running them
+
+```bash
+dotnet run -c Release --project benchmarks/DotNetMapper.Benchmarks -- --filter "*" --memory
+```
+
+The `bench` workflow runs the same command on demand. It is not a gate: shared runners are too
+noisy for nanosecond thresholds.

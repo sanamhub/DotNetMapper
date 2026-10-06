@@ -36,7 +36,8 @@ type pair and cached in a generic static field. That path covers:
 - open generic call sites, where the types are not known at compile time
 - private or protected nested types and `file`-local types
 - anonymous types
-- expression-tree lambdas (`IQueryable.Select(x => Mapper.Map<A, B>(x))`)
+- expression trees: lambdas converted to `Expression<T>` and query clauses over `IQueryable`, so
+  a provider such as EF Core still sees `Mapper.Map`
 - method groups (`Func<A, B> f = Mapper.Map<A, B>;`)
 - consumers on a compiler without interceptor support, or who excluded the analyzer
 
@@ -51,6 +52,9 @@ Both paths produce identical results.
   included.
 - A pair matches when names are equal (ordinal, case-sensitive) and types are identical. Nullable
   reference annotations are ignored, so `string?` matches `string`.
+- When a name is hidden with `new` or overridden, the most-derived declaration wins, accessors
+  included. A hiding property with a private setter is not written, and neither is an override
+  that declares only `get`.
 - Unmatched properties are ignored. Values are copied by assignment, so reference-type values are
   shared, not cloned.
 - Interface types consider only properties declared on that interface itself, not base
@@ -62,10 +66,14 @@ The package is annotated and `IsAotCompatible`, so a NativeAOT or trimmed consum
 warnings-as-errors and no IL2xxx/IL3xxx diagnostics. Intercepted calls are plain generated code.
 The runtime fallback interprets its expression tree under NativeAOT, which is slower but correct.
 
+`Map` declares which members it reads with `[DynamicallyAccessedMembers]`. If you call it from your
+own generic method with trim analysis on, the analyzer reports IL2091 until you put the same
+attributes on your type parameters.
+
 ## Requirements
 
-.NET 10 SDK. Interception needs a compiler with interceptor support, which every .NET 10 SDK has.
-On an older compiler everything still works through the runtime path.
+A project targeting `net10.0` or later, built with the .NET 10 SDK. Every .NET 10 SDK supports
+interceptors, so no setup is needed: the package adds the `InterceptorsNamespaces` entry itself.
 
 ## See the generated code
 
@@ -82,15 +90,28 @@ Every call then uses the runtime path.
 
 ## Performance
 
-See [docs/benchmarks](https://github.com/sanamhub/DotNetMapper/blob/main/docs/benchmarks/README.md)
-for the full run. On a Windows 11 x64 machine with .NET 10, mapping a 10-property class:
+Mapping a 10-property class, .NET 10 on a Windows 11 x64 laptop, each library with its defaults.
+Lower is better.
 
-| Path | Mean | Allocated |
-| --- | ---: | ---: |
-| Hand-written | 13.8 ns | 136 B |
-| DotNetMapper (intercepted) | 14.6 ns | 136 B |
-| DotNetMapper runtime fallback | 16.2 ns | 136 B |
-| DotNetMapper 1.0.2 | 183,711 ns | 11,771 B |
+| Library | Mean | vs hand-written | Allocated |
+| --- | ---: | ---: | ---: |
+| Hand-written | 13.5 ns | 1.00 | 136 B |
+| **DotNetMapper 2.0** | **12.7 ns** | **0.94** | **136 B** |
+| Mapperly 4.3 | 13.8 ns | 1.03 | 136 B |
+| Mapster 10.0 | 33.9 ns | 2.52 | 208 B |
+| AutoMapper 16.2 | 61.5 ns | 4.57 | 224 B |
+| TinyMapper 3.0 | 62.0 ns | 4.61 | 272 B |
+| AgileMapper 1.8 | 242.4 ns | 18.01 | 456 B |
+| DotNetMapper 1.0.2 | 180,053 ns | 13,378 | 11,771 B |
+
+DotNetMapper is as fast as writing the mapping by hand, because after compilation it is the
+mapping written by hand. Mapperly emits the same code and is within noise of it. Mapster,
+AutoMapper, TinyMapper and AgileMapper also copy the `List<string>` property by default, which
+accounts for part of their gap; on a 2-property model with no collection they are still 2.7 to
+53 times slower than hand-written code.
+
+[docs/benchmarks](https://github.com/sanamhub/DotNetMapper/blob/main/docs/benchmarks/README.md)
+has the full tables, the 2-property model, cold start, and how to run them.
 
 ## Migrating from 1.x
 

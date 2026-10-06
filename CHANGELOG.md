@@ -12,8 +12,9 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - A Roslyn incremental source generator, shipped inside the package, that replaces
   `Mapper.Map<A, B>(x)` calls with generated `new B { P = x.P, ... }` code at compile time when
   `A` and `B` are concrete and nameable. The call site pays no reflection, no delegate, and no
-  boxing. Interception needs a compiler with interceptor support; without it the runtime path is
-  used.
+  boxing. Generated methods are marked for aggressive inlining, so the call site compiles to the
+  same code as a hand-written initializer. Calls inside expression trees, including query clauses
+  over `IQueryable`, are left alone so query providers still see `Mapper.Map`.
 - NativeAOT and trim annotations on the public API, and `IsAotCompatible` on the package, so a
   NativeAOT consumer compiles with warnings-as-errors and no IL2xxx/IL3xxx diagnostics.
 - Symbols package (`.snupkg`) and SourceLink/deterministic build settings.
@@ -26,7 +27,8 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   is no dictionary lookup and no boxing.
 - Targets to `net10.0` only.
 - Targets with a private, internal or protected setter are no longer written. Source properties
-  without a public getter are skipped. Both paths agree on this.
+  without a public getter are skipped. When a property is hidden or overridden, the most-derived
+  declaration decides, including its accessors. Both paths agree on this.
 - The repository moved to a `src/` layout with a `.slnx` solution, central package management,
   warnings-as-errors, and PublicAPI tracking.
 
@@ -41,7 +43,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
-- `net8.0` target. `.NET 10` is the only supported target.
+- The `net8.0` target. .NET 10 is the only supported target.
 
 ## [1.0.2]
 
