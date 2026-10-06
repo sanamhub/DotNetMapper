@@ -1,8 +1,10 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/DotNetMapper/DotNetMapper.csproj" />
+    <Project Path="src/DotNetMapper.Generator/DotNetMapper.Generator.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/DotNetMapper.Tests/DotNetMapper.Tests.csproj" />
+    <Project Path="tests/DotNetMapper.Generator.Tests/DotNetMapper.Generator.Tests.csproj" />
   </Folder>
 </Solution>

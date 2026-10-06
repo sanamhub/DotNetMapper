@@ -1,0 +1,6 @@
+<Project>
+  <!-- Lets the DotNetMapper source generator replace Mapper.Map calls with generated code. -->
+  <PropertyGroup>
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);DotNetMapper.Generated</InterceptorsNamespaces>
+  </PropertyGroup>
+</Project>

@@ -3,6 +3,8 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
+    <!-- Project references do not get the package's buildTransitive props, so opt in here. -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);DotNetMapper.Generated</InterceptorsNamespaces>
     <!-- Lets a reviewer read what the generator produced under obj/. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
     <TestingPlatformCommandLineArguments>--minimum-expected-tests 28</TestingPlatformCommandLineArguments>
@@ -10,6 +12,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\DotNetMapper\DotNetMapper.csproj" />
+    <ProjectReference Include="..\..\src\DotNetMapper.Generator\DotNetMapper.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     <PackageReference Include="xunit.v3" />
     <PackageReference Include="Microsoft.Testing.Extensions.CodeCoverage" />
     <PackageReference Include="Microsoft.Testing.Extensions.TrxReport" />

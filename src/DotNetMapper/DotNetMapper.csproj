@@ -28,6 +28,17 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="buildTransitive\DotNetMapper.props" Pack="true" PackagePath="buildTransitive\" />
+  </ItemGroup>
+
+  <!-- The generator ships inside this package, not as its own package. Build it first, never
+       reference its assembly, and pack its DLL where Roslyn looks for analyzers. -->
+  <ItemGroup>
+    <ProjectReference Include="..\DotNetMapper.Generator\DotNetMapper.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <None Include="..\DotNetMapper.Generator\bin\$(Configuration)\netstandard2.0\DotNetMapper.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
