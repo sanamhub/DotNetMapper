@@ -37,6 +37,9 @@ internal static class SourceEmitter
                 sb.Append($"        [global::System.Runtime.CompilerServices.InterceptsLocationAttribute({model.LocationVersion}, \"{model.LocationData}\")]\n");
             }
 
+            // Inlined, the call site compiles to the same code as a hand-written initializer. Without
+            // the hint the JIT keeps the call once the method grows past a few properties.
+            sb.Append("        [global::System.Runtime.CompilerServices.MethodImpl(global::System.Runtime.CompilerServices.MethodImplOptions.AggressiveInlining)]\n");
             sb.Append($"        internal static {group.Key.OutputType} Map{methodIndex}({group.Key.InputType} inputObject)\n");
             sb.Append("        {\n");
 
