@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Optimize>true</Optimize>
+    <ServerGarbageCollection>false</ServerGarbageCollection>
+    <!-- Project references do not get the package's buildTransitive props, so opt in here. -->
+    <InterceptorsNamespaces>$(InterceptorsNamespaces);DotNetMapper.Generated</InterceptorsNamespaces>
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\DotNetMapper\DotNetMapper.csproj" />
+    <ProjectReference Include="..\..\src\DotNetMapper.Generator\DotNetMapper.Generator.csproj"
+                      OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="Riok.Mapperly" />
+    <PackageReference Include="Mapster" />
+  </ItemGroup>
+
+</Project>

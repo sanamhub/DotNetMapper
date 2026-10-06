@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/DotNetMapper.Benchmarks/DotNetMapper.Benchmarks.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/DotNetMapper/DotNetMapper.csproj" />
     <Project Path="src/DotNetMapper.Generator/DotNetMapper.Generator.csproj" />

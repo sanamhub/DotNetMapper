@@ -47,3 +47,10 @@ dotnet_diagnostic.CA1707.severity = none
 dotnet_diagnostic.CA1515.severity = none
 # BenchmarkDotNet discovers instance methods; making them static changes what is measured.
 dotnet_diagnostic.CA1822.severity = none
+# Benchmark payloads mirror real DTOs: a mutable List<T> is the property being copied.
+dotnet_diagnostic.CA1002.severity = none
+dotnet_diagnostic.CA2227.severity = none
+
+[benchmarks/DotNetMapper.Benchmarks/LegacyMapper.cs]
+# The 1.0.2 shipped implementation, kept verbatim so the improvement is measurable.
+dotnet_diagnostic.CA1510.severity = none
