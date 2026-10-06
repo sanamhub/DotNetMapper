@@ -3,7 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <IsPackable>false</IsPackable>
-    <TestingPlatformCommandLineArguments>--minimum-expected-tests 16</TestingPlatformCommandLineArguments>
+    <TestingPlatformCommandLineArguments>--minimum-expected-tests 25</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>

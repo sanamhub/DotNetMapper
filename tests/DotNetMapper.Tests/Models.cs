@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Collections.ObjectModel;
 
 namespace DotNetMapper.Tests;
@@ -270,4 +272,64 @@ public sealed class AllocClassTarget
 {
     public int Id { get; set; }
     public string Name { get; set; } = "";
+}
+
+// Hiding and overriding: the most-derived property decides before its accessors are checked.
+public class AccessorBase
+{
+    public int X { get; set; }
+}
+
+public sealed class HiddenPrivateSetterTarget : AccessorBase
+{
+    public new int X { get; private set; }
+}
+
+#pragma warning disable CA1044 // Getter is private on purpose: it must block the public base getter.
+public sealed class HiddenPrivateGetterSource : AccessorBase
+{
+    public new int X { private get; set; }
+}
+#pragma warning restore CA1044
+
+public class VirtualAccessorBase
+{
+    public virtual int X { get; set; }
+}
+
+public sealed class GetterOnlyOverrideTarget : VirtualAccessorBase
+{
+    public override int X { get => base.X; }
+}
+
+public sealed class PlainX
+{
+    public int X { get; set; }
+}
+
+// Records which method called the getter, so a test can tell the two paths apart.
+public sealed class TracingSource
+{
+    [ThreadStatic]
+    private static string? t_lastStack;
+
+    private int _id;
+
+    public static string? LastStack => t_lastStack;
+
+    public int Id
+    {
+        [MethodImpl(MethodImplOptions.NoInlining)]
+        get
+        {
+            t_lastStack = new StackTrace().ToString();
+            return _id;
+        }
+        set => _id = value;
+    }
+}
+
+public sealed class TracingTarget
+{
+    public int Id { get; set; }
 }

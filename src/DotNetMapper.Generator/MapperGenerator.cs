@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace DotNetMapper.Generator;
 
@@ -78,7 +79,7 @@ public sealed class MapperGenerator : IIncrementalGenerator
             return null;
         }
 
-        if (IsInsideExpressionLambda(invocation, semanticModel, cancellationToken))
+        if (IsInsideExpressionTree(invocation, semanticModel, cancellationToken))
         {
             return null;
         }
@@ -111,17 +112,20 @@ public sealed class MapperGenerator : IIncrementalGenerator
         };
     }
 
-    private static bool IsInsideExpressionLambda(InvocationExpressionSyntax invocation, SemanticModel semanticModel, CancellationToken cancellationToken)
+    private static bool IsInsideExpressionTree(InvocationExpressionSyntax invocation, SemanticModel semanticModel, CancellationToken cancellationToken)
     {
-        foreach (SyntaxNode ancestor in invocation.Ancestors())
+        // A lambda converted to Expression<T> and a query clause over IQueryable both compile to an
+        // expression tree. Rewriting the call there would hand the query provider a call to a
+        // file-local generated method it cannot translate. Query clauses have no lambda syntax,
+        // so this walks the operation tree, where both show up as an anonymous function.
+        bool insideLambda = false;
+        for (IOperation? operation = semanticModel.GetOperation(invocation, cancellationToken); operation is not null; operation = operation.Parent)
         {
-            if (ancestor is not LambdaExpressionSyntax lambda)
+            if (operation is IAnonymousFunctionOperation)
             {
-                continue;
+                insideLambda = true;
             }
-
-            if (semanticModel.GetTypeInfo(lambda, cancellationToken).ConvertedType is INamedTypeSymbol { OriginalDefinition: { } original } &&
-                original.ToDisplayString() == "System.Linq.Expressions.Expression<TDelegate>")
+            else if (insideLambda && IsExpressionOfT(operation.Type))
             {
                 return true;
             }
@@ -129,6 +133,10 @@ public sealed class MapperGenerator : IIncrementalGenerator
 
         return false;
     }
+
+    private static bool IsExpressionOfT(ITypeSymbol? type) =>
+        type is INamedTypeSymbol { IsGenericType: true } named &&
+        named.OriginalDefinition.ToDisplayString() == "System.Linq.Expressions.Expression<TDelegate>";
 
     private static string FullyQualified(ITypeSymbol type) =>
         type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
@@ -157,37 +165,29 @@ public sealed class MapperGenerator : IIncrementalGenerator
 
     private static Dictionary<string, IPropertySymbol> PublicProperties(ITypeSymbol type, bool requireGetter)
     {
-        var result = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
-
+        // Walking from most-derived to base, the first public property with a name wins, and only
+        // then are its accessors checked. Checking first would fall back to a base property that
+        // the generated code cannot bind to, because C# binds `x.Name` to the most-derived one.
+        var mostDerived = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
         for (ITypeSymbol? current = type; current is not null; current = current.BaseType)
         {
             foreach (ISymbol member in current.GetMembers())
             {
-                if (member is not IPropertySymbol property ||
-                    property.IsStatic ||
-                    property.IsIndexer ||
-                    property.DeclaredAccessibility != Accessibility.Public)
+                if (member is IPropertySymbol { IsStatic: false, IsIndexer: false, DeclaredAccessibility: Accessibility.Public } property &&
+                    !mostDerived.ContainsKey(property.Name))
                 {
-                    continue;
+                    mostDerived[property.Name] = property;
                 }
+            }
+        }
 
-                if (requireGetter)
-                {
-                    if (property.GetMethod is not { DeclaredAccessibility: Accessibility.Public })
-                    {
-                        continue;
-                    }
-                }
-                else if (property.SetMethod is not { DeclaredAccessibility: Accessibility.Public })
-                {
-                    continue;
-                }
-
-                // Walking from most-derived to base, the first occurrence of a name wins.
-                if (!result.ContainsKey(property.Name))
-                {
-                    result[property.Name] = property;
-                }
+        var result = new Dictionary<string, IPropertySymbol>(StringComparer.Ordinal);
+        foreach (KeyValuePair<string, IPropertySymbol> entry in mostDerived)
+        {
+            IMethodSymbol? accessor = requireGetter ? entry.Value.GetMethod : entry.Value.SetMethod;
+            if (accessor is { DeclaredAccessibility: Accessibility.Public })
+            {
+                result[entry.Key] = entry.Value;
             }
         }
 

@@ -31,8 +31,10 @@ internal static class PropertyMatcher
         [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties)] Type type,
         bool source)
     {
-        var result = new Dictionary<string, PropertyInfo>(StringComparer.Ordinal);
-
+        // The most-derived property with a name wins before its accessors are checked, the same
+        // order the generator uses. A hiding property with a private setter therefore blocks the
+        // base one instead of letting it through.
+        var mostDerived = new Dictionary<string, PropertyInfo>(StringComparer.Ordinal);
         foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
             if (property.GetIndexParameters().Length != 0)
@@ -40,25 +42,23 @@ internal static class PropertyMatcher
                 continue;
             }
 
-            if (source)
+            if (!mostDerived.TryGetValue(property.Name, out var existing) || IsMoreDerived(property, existing))
             {
-                if (property.GetMethod is not { IsPublic: true })
-                {
-                    continue;
-                }
-            }
-            else if (property.SetMethod is not { IsPublic: true })
-            {
-                continue;
-            }
-
-            if (!result.TryGetValue(property.Name, out var existing) || IsMoreDerived(property, existing))
-            {
-                result[property.Name] = property;
+                mostDerived[property.Name] = property;
             }
         }
 
-        return result.Values.ToList();
+        var result = new List<PropertyInfo>(mostDerived.Count);
+        foreach (var property in mostDerived.Values)
+        {
+            var accessor = source ? property.GetMethod : property.SetMethod;
+            if (accessor is { IsPublic: true })
+            {
+                result.Add(property);
+            }
+        }
+
+        return result;
     }
 
     private static bool IsMoreDerived(PropertyInfo candidate, PropertyInfo existing)

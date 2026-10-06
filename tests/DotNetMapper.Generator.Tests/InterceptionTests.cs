@@ -197,6 +197,67 @@ public sealed class InterceptionTests
     }
 
     [Fact]
+    public void Query_clause_over_IEnumerable_is_intercepted()
+    {
+        const string source = """
+            using System.Collections.Generic;
+            using System.Linq;
+            using DotNetMapper;
+
+            namespace Demo
+            {
+                public class Input { public int Id { get; set; } }
+                public class Output { public int Id { get; set; } }
+
+                public class Program
+                {
+                    public IEnumerable<Output> Go(IEnumerable<Input> source) => from x in source select Mapper.Map<Input, Output>(x);
+                }
+            }
+            """;
+
+        var (text, diagnostics) = GeneratorHarness.Run(GeneratorHarness.CreateCompilation(("Test.cs", source)));
+
+        Assert.Contains("InterceptsLocationAttribute", text, StringComparison.Ordinal);
+        AssertNoDiagnostics(diagnostics);
+    }
+
+    [Theory]
+    // A hiding target property with a private setter must block the base one: C# binds the
+    // initializer to the derived property, so writing it would not compile.
+    [InlineData("public class Output : Base { public new int X { get; private set; } }", "Input", "Output")]
+    // Same on the source side with a private getter.
+    [InlineData("public class Input2 : Base { public new int X { private get; set; } }", "Input2", "Output2")]
+    // An override that declares only a getter counts as read-only, as reflection sees it.
+    [InlineData("public class Output : VirtualBase { public override int X { get => base.X; } }", "Input", "Output")]
+    public void Most_derived_property_decides_before_its_accessors(string declaration, string input, string output)
+    {
+        string source = $$"""
+            using DotNetMapper;
+
+            namespace Demo
+            {
+                public class Base { public int X { get; set; } }
+                public class VirtualBase { public virtual int X { get; set; } }
+                public class Input { public int X { get; set; } }
+                public class Output2 { public int X { get; set; } }
+                {{declaration}}
+
+                public class Program
+                {
+                    public object Go({{input}} x) => Mapper.Map<{{input}}, {{output}}>(x);
+                }
+            }
+            """;
+
+        var (text, diagnostics) = GeneratorHarness.Run(GeneratorHarness.CreateCompilation(("Test.cs", source)));
+
+        Assert.Contains("InterceptsLocationAttribute", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("@X =", text, StringComparison.Ordinal);
+        AssertNoDiagnostics(diagnostics);
+    }
+
+    [Fact]
     public void Output_is_deterministic_across_runs()
     {
         var compilation = GeneratorHarness.CreateCompilation(("Test.cs", Input));

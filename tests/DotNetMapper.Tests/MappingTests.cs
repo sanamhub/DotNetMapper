@@ -258,7 +258,41 @@ public sealed class MappingTests
     [Fact]
     public void Null_reference_input_throws_ArgumentNullException()
     {
-        AssertBothThrows<BasicSource, BasicTarget>();
+        // Called directly, not through a generic helper: a generic call site is never
+        // intercepted, so it would test the runtime path twice.
+        var direct = Assert.Throws<ArgumentNullException>(() => Mapper.Map<BasicSource, BasicTarget>(null!));
+        Assert.Equal("inputObject", direct.ParamName);
+
+        var runtime = Assert.Throws<ArgumentNullException>(() => RuntimePath.Map<BasicSource, BasicTarget>(null!));
+        Assert.Equal("inputObject", runtime.ParamName);
+    }
+
+    [Fact]
+    public void Hiding_target_with_private_setter_blocks_the_base_setter()
+    {
+        var input = new PlainX { X = 5 };
+
+        Assert.Equal(0, Mapper.Map<PlainX, HiddenPrivateSetterTarget>(input).X);
+        Assert.Equal(0, RuntimePath.Map<PlainX, HiddenPrivateSetterTarget>(input).X);
+    }
+
+    [Fact]
+    public void Hiding_source_with_private_getter_blocks_the_base_getter()
+    {
+        var input = new HiddenPrivateGetterSource { X = 5 };
+        ((AccessorBase)input).X = 7;
+
+        Assert.Equal(0, Mapper.Map<HiddenPrivateGetterSource, PlainX>(input).X);
+        Assert.Equal(0, RuntimePath.Map<HiddenPrivateGetterSource, PlainX>(input).X);
+    }
+
+    [Fact]
+    public void Getter_only_override_is_not_written()
+    {
+        var input = new PlainX { X = 5 };
+
+        Assert.Equal(0, Mapper.Map<PlainX, GetterOnlyOverrideTarget>(input).X);
+        Assert.Equal(0, RuntimePath.Map<PlainX, GetterOnlyOverrideTarget>(input).X);
     }
 
     [Fact]
@@ -329,6 +363,19 @@ public sealed class MappingTests
     }
 
     [Fact]
+    public void Query_over_IQueryable_keeps_the_Mapper_call_in_the_expression()
+    {
+        IQueryable<BasicSource> source = new[] { new BasicSource { Id = 4 } }.AsQueryable();
+
+        var query = from x in source select Mapper.Map<BasicSource, BasicTarget>(x);
+
+        // A provider such as EF Core must see Mapper.Map, not a generated method it cannot translate.
+        var call = Assert.IsAssignableFrom<MethodCallExpression>(((LambdaExpression)((UnaryExpression)((MethodCallExpression)query.Expression).Arguments[1]).Operand).Body);
+        Assert.Equal(typeof(Mapper), call.Method.DeclaringType);
+        Assert.Equal(4, query.Single().Id);
+    }
+
+    [Fact]
     public void Private_nested_types_map()
     {
         var input = new PrivateSource { Id = 8 };
@@ -338,16 +385,6 @@ public sealed class MappingTests
 
         var runtime = RuntimePath.Map<PrivateSource, PrivateTarget>(input);
         Assert.Equal(8, runtime.Id);
-    }
-
-    private static void AssertBothThrows<TSource, TTarget>()
-        where TTarget : new()
-    {
-        var direct = Assert.Throws<ArgumentNullException>(() => Mapper.Map<TSource, TTarget>(default!));
-        Assert.Equal("inputObject", direct.ParamName);
-
-        var runtime = Assert.Throws<ArgumentNullException>(() => RuntimePath.Map<TSource, TTarget>(default!));
-        Assert.Equal("inputObject", runtime.ParamName);
     }
 
     private sealed class PrivateSource

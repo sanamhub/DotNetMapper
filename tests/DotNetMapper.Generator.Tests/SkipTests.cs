@@ -122,6 +122,36 @@ public sealed class SkipTests
         AssertNoErrors(diagnostics);
     }
 
+    [Theory]
+    [InlineData("from x in source select Mapper.Map<Input, Output>(x)")]
+    [InlineData("from x in source where Mapper.Map<Input, Output>(x).Id > 0 select x")]
+    [InlineData("from x in source orderby Mapper.Map<Input, Output>(x).Id select x")]
+    [InlineData("from x in source let y = Mapper.Map<Input, Output>(x) select y")]
+    [InlineData("from x in source group Mapper.Map<Input, Output>(x) by x.Id")]
+    public void Query_clause_over_IQueryable_is_not_intercepted(string query)
+    {
+        string source = $$"""
+            using System.Linq;
+            using DotNetMapper;
+
+            namespace Demo
+            {
+                public class Input { public int Id { get; set; } }
+                public class Output { public int Id { get; set; } }
+
+                public class Program
+                {
+                    public object Go(IQueryable<Input> source) => {{query}};
+                }
+            }
+            """;
+
+        var (text, diagnostics) = GeneratorHarness.Run(GeneratorHarness.CreateCompilation(("Test.cs", source)));
+
+        Assert.Equal("", text);
+        AssertNoErrors(diagnostics);
+    }
+
     [Fact]
     public void Method_group_is_not_intercepted()
     {

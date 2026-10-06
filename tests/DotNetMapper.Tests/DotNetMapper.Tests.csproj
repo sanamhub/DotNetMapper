@@ -7,7 +7,7 @@
     <InterceptorsNamespaces>$(InterceptorsNamespaces);DotNetMapper.Generated</InterceptorsNamespaces>
     <!-- Lets a reviewer read what the generator produced under obj/. -->
     <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <TestingPlatformCommandLineArguments>--minimum-expected-tests 28</TestingPlatformCommandLineArguments>
+    <TestingPlatformCommandLineArguments>--minimum-expected-tests 34</TestingPlatformCommandLineArguments>
   </PropertyGroup>
 
   <ItemGroup>
