@@ -1,0 +1,35 @@
+version: 2
+updates:
+  # Grouped so a servicing release is one PR, not several. The cooldown gives a bad release a
+  # week to be pulled before it reaches this repository.
+  - package-ecosystem: nuget
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      test:
+        patterns: ["xunit.*", "Microsoft.Testing.*"]
+      benchmarks:
+        patterns: ["BenchmarkDotNet*", "Riok.Mapperly", "Mapster"]
+    ignore:
+      # The generator must compile against the oldest supported SDK 10 compiler. ADR-0002.
+      - dependency-name: "Microsoft.CodeAnalysis.CSharp"
+      - dependency-name: "Microsoft.CodeAnalysis.Analyzers"
+
+  # The SDK version in global.json.
+  - package-ecosystem: dotnet-sdk
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Keeps the pinned action SHAs current.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7

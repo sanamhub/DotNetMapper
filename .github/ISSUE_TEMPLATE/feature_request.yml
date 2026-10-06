@@ -1,0 +1,22 @@
+name: Feature request
+description: Suggest an addition or change to the API.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DotNetMapper is intentionally minimal: one method, no configuration. Requests for
+        attributes, profiles or conversions will likely be declined; Mapperly covers those.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What you are trying to do
+      description: The use case, not the solution. What is hard or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behaviour
+      description: Optional. A sketch of the signature or the behaviour you have in mind.
+      render: csharp
