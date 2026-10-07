@@ -115,7 +115,7 @@ has the full tables, the 2-property model, cold start, and how to run them.
 
 ## Migrating from 1.x
 
-2.0 drops `net8.0` and fixes mapping rules that the two paths now agree on:
+2.0 moves from `net7.0` to `net10.0` and fixes mapping rules that the two paths now agree on:
 
 - Targets with a private, internal or protected setter are no longer written.
 - Source properties without a public getter are skipped.
