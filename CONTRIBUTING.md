@@ -7,6 +7,8 @@ first. DotNetMapper is deliberately one method with no configuration, so most fe
 This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as
 described in [SECURITY.md](SECURITY.md), not in a public issue.
 
+By contributing, you agree to release your changes under the [MIT License](LICENSE).
+
 ## Setup
 
 You need the .NET SDK version in [`global.json`](global.json). Nothing else.
