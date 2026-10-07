@@ -33,3 +33,7 @@ updates:
     open-pull-requests-limit: 5
     cooldown:
       default-days: 7
+    groups:
+      # init and analyze must share a version. Bumped apart, each PR fails the CodeQL job.
+      codeql:
+        patterns: ["github/codeql-action*"]
