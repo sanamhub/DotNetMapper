@@ -1,44 +1,51 @@
 # Contributing to DotNetMapper
 
-Here's how you can contribute:
+Bug reports, fixes and documentation improvements are welcome. For a new feature, open an issue
+first. DotNetMapper is deliberately one method with no configuration, so most features belong in
+[Mapperly](https://github.com/riok/mapperly) instead.
 
-1. Fork the repository.
-2. Create a new branch for your changes.
-3. Make your changes and ensure they are properly tested.
-4. Create a pull request with a clear description of your changes and why they are necessary.
-5. Wait for your pull request to be reviewed.
+This project follows the [Code of Conduct](CODE_OF_CONDUCT.md). Report security problems as
+described in [SECURITY.md](SECURITY.md), not in a public issue.
 
-Please ensure that your code follows the style and conventions used in the rest of the project,
-and that your changes do not break any existing functionality.
+## Setup
 
-By contributing to DotNetMapper, you agree to release your changes under the terms of the MIT
-License.
-
-## Building and testing
+You need the .NET SDK version in [`global.json`](global.json). Nothing else.
 
 ```bash
-dotnet build
-dotnet test
+dotnet build -c Release
+dotnet test -c Release
 ```
 
-The build treats warnings as errors and runs the full analyzer set, so a warning is a failed
-build. Tests run on Microsoft.Testing.Platform.
+Benchmarks are in [`docs/benchmarks`](docs/benchmarks/README.md).
 
-## Benchmarks
+## Pull requests
 
-```bash
-dotnet run -c Release --project benchmarks/DotNetMapper.Benchmarks -- --filter "*"
+- Keep a pull request to one change. Small is easier to review.
+- The generated code and the runtime fallback must give the same result
+  ([ADR-0003](docs/adr/0003-mapping-rules.md)). A behaviour test goes through both paths; a
+  generator change also gets a test in `tests/DotNetMapper.Generator.Tests`.
+- Public API changes go in `src/DotNetMapper/PublicAPI.Unshipped.txt`. The build fails if you
+  forget.
+- Add a line to the `Unreleased` section of [`CHANGELOG.md`](CHANGELOG.md) for anything a user of
+  the package would notice.
+- A significant design decision gets an ADR in [`docs/adr/`](docs/adr). ADRs are not edited after
+  they are accepted; a later ADR supersedes an earlier one.
+- CI must pass. It builds and tests on Windows and Linux, and publishes a NativeAOT consumer.
+
+## Commit messages
+
+[Conventional Commits](https://www.conventionalcommits.org/): `type(scope): summary`, in the
+imperative, lower case, no trailing period. Types: `feat`, `fix`, `docs`, `chore`, `refactor`,
+`test`, `build`, `ci`, `perf`. The body says why, not what.
+
+```
+fix(generator): skip calls inside query expressions
+
+A query clause over IQueryable becomes an expression tree, and a provider
+cannot translate a call to a file-local generated method.
 ```
 
-Results go under `docs/benchmarks/` when they change.
+## Code style
 
-## Commits
-
-Use conventional commits: `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `build`, `ci`,
-`perf`. The summary is imperative, lower case, and under 72 characters. The body explains why.
-
-## Keep it minimal
-
-DotNetMapper is one public method and nothing else. A change that adds a public type, an
-attribute, a profile, or a configuration knob is probably the wrong change. If the feature needs
-configuration or conversions, Mapperly already covers it.
+The rules in [`.editorconfig`](.editorconfig) are enforced by the build. Public members need XML
+documentation that says what the member does, what it returns and what breaks it.
