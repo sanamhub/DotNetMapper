@@ -43,7 +43,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Removed
 
-- The `net8.0` target. .NET 10 is the only supported target.
+- The `net7.0` target. .NET 10 is the only supported target.
 
 ## [1.0.2]
 
